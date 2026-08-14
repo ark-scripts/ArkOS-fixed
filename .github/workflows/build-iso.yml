@@ -1,0 +1,36 @@
+name: Build ArkOS ISO
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - name: Check out project
+        uses: actions/checkout@v4
+
+      - name: Install live-build
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y live-build
+
+      - name: Build ArkOS.iso
+        run: |
+          sudo lb clean --purge || true
+          sudo lb config
+          sudo lb build
+
+      - name: Rename ISO
+        run: |
+          ls -la *.iso
+          mv live-image-amd64.hybrid.iso ArkOS.iso
+
+      - name: Upload ISO
+        uses: actions/upload-artifact@v4
+        with:
+          name: ArkOS-iso
+          path: ArkOS.iso
+          retention-days: 14
