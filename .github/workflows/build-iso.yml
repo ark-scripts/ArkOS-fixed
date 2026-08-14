@@ -17,10 +17,16 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y live-build
 
+      - name: Fix file permissions
+        run: |
+          chmod +x auto/config auto/clean build.sh
+          chmod +x config/hooks/live/*.chroot
+          chmod +x config/includes.chroot/usr/local/bin/*
+
       - name: Build ArkOS.iso
         run: |
           sudo lb clean --purge || true
-          sudo lb config
+          sudo lb config --distribution jammy --architectures amd64 --binary-images iso-hybrid --archive-areas "main restricted universe multiverse" --debian-installer none --iso-application "ArkOS" --iso-volume "ArkOS" --iso-publisher "ArkOS Project"
           sudo lb build
 
       - name: Rename ISO
