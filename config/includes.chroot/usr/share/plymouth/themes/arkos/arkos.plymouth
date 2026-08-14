@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=ArkOS
+Description=Black and white ArkOS boot splash
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/arkos
+ScriptFile=/usr/share/plymouth/themes/arkos/arkos.script

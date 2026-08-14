@@ -1,0 +1,43 @@
+#!/bin/sh
+set -e
+
+echo "=== ArkOS setup hook ==="
+
+# Make our scripts executable
+chmod +x /usr/local/bin/arkos-login
+chmod +x /usr/local/bin/boot
+
+# Create the low-privilege 'arkos' account that tty1 autologins as.
+# It only exists to launch the Login/Register menu; real accounts
+# live in /etc/arkos/users.db and get their own home directories.
+if ! id -u arkos >/dev/null 2>&1; then
+  useradd -m -s /usr/local/bin/arkos-login arkos
+fi
+
+# Let 'arkos' run the specific root actions the menu needs, no password.
+mkdir -p /etc/sudoers.d
+cat > /etc/sudoers.d/arkos <<'EOF'
+arkos ALL=(ALL) NOPASSWD: /bin/mkdir, /bin/chown, /usr/bin/mkdir, /usr/bin/chown, /usr/bin/systemctl poweroff, /bin/systemctl poweroff
+%sudo ALL=(ALL) NOPASSWD: ALL
+EOF
+chmod 440 /etc/sudoers.d/arkos
+
+mkdir -p /etc/arkos
+touch /etc/arkos/users.db
+chmod 666 /etc/arkos/users.db
+
+# Boot straight to console (multi-user target), not a graphical greeter -
+# the ArkOS menu on tty1 is the entry point, and it launches XFCE itself
+# via startxfce4 once someone logs in.
+systemctl set-default multi-user.target
+systemctl disable lightdm 2>/dev/null || true
+
+# Make sure Plymouth uses the ArkOS theme
+if command -v plymouth-set-default-theme >/dev/null 2>&1; then
+  plymouth-set-default-theme -R arkos || true
+fi
+
+# Regenerate GRUB config with ArkOS branding
+update-grub 2>/dev/null || true
+
+echo "=== ArkOS setup hook complete ==="

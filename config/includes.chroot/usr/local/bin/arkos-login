@@ -1,0 +1,89 @@
+#!/bin/bash
+# ArkOS custom console login/register flow
+# This replaces the default shell on tty1 so the very first thing
+# a user sees after boot is this menu (launched via `sudo boot` alias too).
+
+USERDB="/etc/arkos/users.db"
+LOGO="/etc/arkos/logo.txt"
+touch "$USERDB" 2>/dev/null
+
+clear
+if [ -f "$LOGO" ]; then cat "$LOGO"; fi
+
+hash_pw() { echo -n "$1" | sha256sum | awk '{print $1}'; }
+
+draw_menu() {
+  echo ""
+  echo "============================================"
+  echo "                A R K O S"
+  echo "============================================"
+  echo "  1) Login"
+  echo "  2) Register"
+  echo "  3) Shutdown"
+  echo "============================================"
+  read -rp "Select an option [1-3]: " CHOICE
+}
+
+register() {
+  read -rp "Choose a username: " NEWUSER
+  if grep -q "^${NEWUSER}:" "$USERDB"; then
+    echo "That username already exists."
+    sleep 1.5
+    return
+  fi
+  read -rsp "Choose a password: " NEWPASS; echo
+  read -rsp "Confirm password: " NEWPASS2; echo
+  if [ "$NEWPASS" != "$NEWPASS2" ]; then
+    echo "Passwords did not match."
+    sleep 1.5
+    return
+  fi
+  echo "${NEWUSER}:$(hash_pw "$NEWPASS")" >> "$USERDB"
+  # Also create a real Linux home directory for this ArkOS account
+  sudo mkdir -p "/home/${NEWUSER}"
+  sudo chown "$(id -u):$(id -g)" "/home/${NEWUSER}"
+  echo "Account created. You can now log in."
+  sleep 1.5
+}
+
+do_login() {
+  read -rp "Username: " USERNAME
+  read -rsp "Password: " PASSWORD; echo
+  LINE=$(grep "^${USERNAME}:" "$USERDB")
+  if [ -z "$LINE" ]; then
+    echo "No such user. Please register first."
+    sleep 1.5
+    return
+  fi
+  STORED_HASH="${LINE#*:}"
+  if [ "$(hash_pw "$PASSWORD")" = "$STORED_HASH" ]; then
+    echo "Welcome, ${USERNAME}."
+    sleep 1
+    export ARKOS_USER="$USERNAME"
+    export HOME="/home/${USERNAME}"
+    cd "$HOME" || cd /
+    # Hand off to the graphical desktop
+    startxfce4 -- :0 >/dev/null 2>&1
+    # After the X session ends, return to the menu instead of a bare shell
+    main
+  else
+    echo "Incorrect password."
+    sleep 1.5
+  fi
+}
+
+main() {
+  while true; do
+    clear
+    if [ -f "$LOGO" ]; then cat "$LOGO"; fi
+    draw_menu
+    case "$CHOICE" in
+      1) do_login ;;
+      2) register ;;
+      3) sudo systemctl poweroff ;;
+      *) echo "Invalid option." ; sleep 1 ;;
+    esac
+  done
+}
+
+main

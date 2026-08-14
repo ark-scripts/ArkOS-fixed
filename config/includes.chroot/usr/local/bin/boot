@@ -1,0 +1,8 @@
+#!/bin/bash
+# Lets a user type `sudo boot` from any shell to bring up the
+# ArkOS Login/Register console menu on demand.
+if [ "$(id -u)" -ne 0 ]; then
+  echo "Run this with: sudo boot"
+  exit 1
+fi
+exec /usr/local/bin/arkos-login
