@@ -26,7 +26,7 @@ jobs:
       - name: Build ArkOS.iso
         run: |
           sudo lb clean --purge || true
-          sudo lb config --distribution jammy --architectures amd64 --binary-images iso-hybrid --archive-areas "main restricted universe multiverse" --debian-installer false --syslinux-theme "" --iso-application "ArkOS" --iso-volume "ArkOS" --iso-publisher "ArkOS Project"
+          sudo lb config --distribution jammy --architectures amd64 --binary-images iso --archive-areas "main restricted universe multiverse" --bootloaders grub-pc  --iso-application "ArkOS" --iso-volume "ArkOS" --iso-publisher "ArkOS Project"
           sudo lb build
 
       - name: Rename ISO
