@@ -18,10 +18,26 @@ jobs:
           chmod +x auto/config auto/clean build.sh
           chmod +x config/hooks/live/*.chroot
           chmod +x config/includes.chroot/usr/local/bin/*
+      - name: Create dummy syslinux theme packages
+        run: |
+          mkdir -p config/packages.chroot
+          for pkg in gfxboot-theme-ubuntu syslinux-themes-ubuntu-oneiric; do
+            mkdir -p /tmp/${pkg}/DEBIAN
+            cat > /tmp/${pkg}/DEBIAN/control <<EOF
+          Package: ${pkg}
+          Version: 1.0
+          Architecture: all
+          Maintainer: ArkOS <root@localhost>
+          Description: Dummy placeholder so live-build's syslinux stage
+           doesn't fail trying to fetch a package Ubuntu no longer ships.
+          EOF
+            dpkg-deb --build /tmp/${pkg} config/packages.chroot/${pkg}_1.0_all.deb
+          done
+          ls -la config/packages.chroot/
       - name: Build ArkOS.iso
         run: |
           sudo lb clean --purge || true
-          sudo lb config --distribution jammy --architectures amd64 --binary-images iso-hybrid --archive-areas "main restricted universe multiverse" --debian-installer false --syslinux-theme "" --iso-application "ArkOS" --iso-volume "ArkOS" --iso-publisher "ArkOS Project"
+          sudo lb config --distribution jammy --architectures amd64 --binary-images iso-hybrid --archive-areas "main restricted universe multiverse" --debian-installer false --bootloaders grub-pc --iso-application "ArkOS" --iso-volume "ArkOS" --iso-publisher "ArkOS Project"
           sudo lb build
       - name: Rename ISO
         run: |
